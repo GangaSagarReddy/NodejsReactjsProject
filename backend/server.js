@@ -1,5 +1,8 @@
 const express = require("express");
 // const bcrypt = require("bcrypt")
+const bcrypt = require('bcryptjs');
+
+const crypto = require('crypto');
 
 const cors = require("cors");
 
@@ -36,47 +39,136 @@ const upload=multer({
     storage:storage
 })
 
-app.post("/reguser", async (req, res) => {
-  const sql = "INSERT INTO reg_user (`name`,`email`,`password`) VALUES (?)";
-  // var value=req.body.password;
-  // const salt=await bcrypt.genSalt(20);
-  // value = await bcrypt.hash(value,salt)
-  const values = [req.body.name, req.body.email,req.body.password];
+// app.post("/reguser", async (req, res) => {
+//   const sql = "INSERT INTO reg_user (`name`,`email`,`password`) VALUES (?)";
+//   // var value=req.body.password;
+//   // const salt=await bcrypt.genSalt(20);
+//   // value = await bcrypt.hash(value,salt)
+//   const values = [req.body.name, req.body.email,req.body.password];
 
-  db.query(sql, [values], (err, data) => {
+//   db.query(sql, [values], (err, data) => {
+//     if (err) throw err;
+
+//     return res.json(data);
+//   });
+// });
+
+// app.post('/login', (req, res) => {
+
+//     const sql = "SELECT * FROM reg_user WHERE `email` = ? AND `password` = ?";
+
+//     db.query(sql, [req.body.email, req.body.password], (err, data) => {
+
+//         if(err){
+
+//              return res.json("Error");
+
+//         }
+
+//         if(data.length > 0) {
+
+//             return res.json("Success")
+
+//         }
+
+//         else{
+
+//             return res.json("Failed")
+
+//         }
+
+//     })
+
+// })
+app.post("/reguser", async (req, res) => {
+
+  const name = req.body.name;
+
+  const email = req.body.email;
+
+  const password = req.body.password;
+
+ 
+
+  // Hash the password
+
+  const saltRounds = 10;
+
+  const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+ 
+
+  const sql = "INSERT INTO reg_user (`name`, `email`, `password`) VALUES (?, ?, ?)";
+
+  const values = [name, email, hashedPassword];
+
+ 
+
+  db.query(sql, values, (err, data) => {
+
     if (err) throw err;
 
-    return res.json(data);
+    return res.json({ message: 'User registered successfully' });
+
   });
+
 });
+
+ 
 
 app.post('/login', (req, res) => {
 
-    const sql = "SELECT * FROM reg_user WHERE `email` = ? AND `password` = ?";
+  const email = req.body.email;
 
-    db.query(sql, [req.body.email, req.body.password], (err, data) => {
+  const password = req.body.password;
 
-        if(err){
+ 
 
-             return res.json("Error");
+  // Fetch the hashed password from the database based on the email
 
-        }
+  const sql = "SELECT * FROM reg_user WHERE `email` = ?";
 
-        if(data.length > 0) {
+  db.query(sql, [email], async (err, data) => {
 
-            return res.json("Success")
+    if (err) {
 
-        }
+      return res.json("Error");
 
-        else{
+    }
 
-            return res.json("Failed")
+ 
 
-        }
+    if (data.length > 0) {
 
-    })
+      const hashedPasswordFromDatabase = data[0].password;
 
-})
+ 
+
+      // Compare the provided password with the hashed password from the database
+
+      const isPasswordCorrect = await bcrypt.compare(password, hashedPasswordFromDatabase);
+
+ 
+
+      if (isPasswordCorrect) {
+
+        return res.json("Success");
+
+      } else {
+
+        return res.json("Failed");
+
+      }
+
+    } else {
+
+      return res.json("Failed");
+
+    }
+
+  });
+
+});
 app.get("/api/v1/employees", (req, res) => {
     const sql = "SELECT * FROM employees";
   
